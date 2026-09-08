@@ -60,12 +60,6 @@ describe("Distribui corretamente os lotes entre as associações", () => {
 
         const distribuicaoEsperada: Distribuicao[] = [
             {
-                nome: associacoes[0].nome,
-                cnpj: associacoes[0].cnpj,
-                bandejas: 80,
-                mudas: 4_000
-            },
-            {
                 nome: associacoes[1].nome,
                 cnpj: associacoes[1].cnpj,
                 bandejas: 120,
@@ -76,6 +70,12 @@ describe("Distribui corretamente os lotes entre as associações", () => {
                 cnpj: associacoes[2].cnpj,
                 bandejas: 120,
                 mudas: 6_000
+            },
+            {
+                nome: associacoes[0].nome,
+                cnpj: associacoes[0].cnpj,
+                bandejas: 80,
+                mudas: 4_000
             },
             {
                 nome: associacoes[3].nome,
@@ -138,14 +138,14 @@ describe("Distribui corretamente os lotes entre as associações", () => {
 
         const distribuicaoEsperada: Distribuicao[] = [
             {
-                nome: associacoes[0].nome,
-                cnpj: associacoes[0].cnpj,
+                nome: associacoes[1].nome,
+                cnpj: associacoes[1].cnpj,
                 bandejas: 41,
                 mudas: 2_050
             },
             {
-                nome: associacoes[1].nome,
-                cnpj: associacoes[1].cnpj,
+                nome: associacoes[0].nome,
+                cnpj: associacoes[0].cnpj,
                 bandejas: 41,
                 mudas: 2_050
             },
@@ -157,11 +157,59 @@ describe("Distribui corretamente os lotes entre as associações", () => {
             }
         ]
         const resultadoEsperado: ResultadoRateio = {
-            distribuicao:distribuicaoEsperada,
+            distribuicao: distribuicaoEsperada,
             totalDistribuido: 5150,
             sobraNaoDistribuida: 30
         }
 
         expect(ratearMudas(totalMudas, associacoes)).toEqual(resultadoEsperado)
     })
+
+    it("Destribui corretamente baseado no cnpj", () => {
+        const totalMudas = 150;
+
+        const associacoes: Associacao[] = [
+            {
+                nome: "Associação dos Produtores",
+                municipio: "Ouro Preto",
+                familias: 10,
+                cotaMaxima: 1000,
+                cnpj: "22.222.222/0001-22",
+                situacao: "regular"
+            },
+            {
+
+                nome: "Associação dos Produtores",
+                municipio: "Ji-Paraná",
+                familias: 10,
+                cotaMaxima: 1000,
+                cnpj: "11.111.111/0001-11",
+                situacao: "regular"
+            }
+        ];
+
+
+        const distribuicaoEsperada: Distribuicao[] = [
+            {
+                nome: associacoes[1].nome,
+                cnpj: associacoes[1].cnpj,
+                bandejas: 2,
+                mudas: 100
+            },
+            {
+                nome: associacoes[0].nome,
+                cnpj: associacoes[0].cnpj,
+                bandejas: 1,
+                mudas: 50
+            }
+        ];
+
+        const resultadoEsperado: ResultadoRateio = {
+            distribuicao: distribuicaoEsperada,
+            totalDistribuido: 150,
+            sobraNaoDistribuida: 0
+        };
+
+        expect(ratearMudas(totalMudas, associacoes)).toEqual(resultadoEsperado);
+    });
 })

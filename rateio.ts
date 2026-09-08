@@ -27,10 +27,10 @@ export interface ResultadoRateio {
 }
 
 interface DistribuicaoComPontuacao extends Distribuicao {
-    pontuaco: number;
+    pontuacao: number;
     familias: number;
     bandejaLimite: number;
-    situacao:SituacaoCadastral
+    situacao: SituacaoCadastral
 }
 
 export class RateioError extends Error {
@@ -48,26 +48,26 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
     const somaDasFamilias = associados.reduce((familiasSomada, familiasAtuais) => familiasSomada + familiasAtuais.familias, 0)
 
     const distribuicaoAssociados: DistribuicaoComPontuacao[] = associados.map(associacao => {
-        
-        if(associacao.situacao !== "regular") {
-            
-            const distribuicao:DistribuicaoComPontuacao = {
-                nome:associacao.nome,
-                cnpj:associacao.cnpj,
-                bandejas:0,
-                mudas:0,
-                pontuaco:0,
-                familias:associacao.familias,
-                bandejaLimite:0,
-                situacao:associacao.situacao,
+
+        if (associacao.situacao !== "regular") {
+
+            const distribuicao: DistribuicaoComPontuacao = {
+                nome: associacao.nome,
+                cnpj: associacao.cnpj,
+                bandejas: 0,
+                mudas: 0,
+                pontuacao: 0,
+                familias: associacao.familias,
+                bandejaLimite: 0,
+                situacao: associacao.situacao,
                 motivoExclusao: associacao.situacao
-            }            
+            }
             return distribuicao
         }
 
         const cotaIdeal = Math.floor(totalMudas / MUDAS_POR_BANDEJA) * associacao.familias / somaDasFamilias
 
-        const bandejaLimite = cotaIdeal > 0 ? Math.floor(associacao.cotaMaxima / MUDAS_POR_BANDEJA): cotaIdeal
+        const bandejaLimite = cotaIdeal > 0 ? Math.floor(associacao.cotaMaxima / MUDAS_POR_BANDEJA) : cotaIdeal
 
         const bandejaEncontrada = Math.floor(cotaIdeal) > bandejaLimite ? bandejaLimite : Math.floor(cotaIdeal)
 
@@ -83,10 +83,10 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
             nome: associacao.nome,
             bandejas: bandejaDisponivel,
             mudas: bandejaDisponivel * MUDAS_POR_BANDEJA,
-            pontuaco: cotaIdeal,
+            pontuacao: cotaIdeal,
             familias: associacao.familias,
             bandejaLimite: bandejaLimite,
-            situacao:"regular"
+            situacao: "regular"
         }
         return distribuicao
     });
@@ -109,7 +109,10 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
 
                     const proximo = associadosSemBandeja[j + 1];
 
-                    if (proximo.pontuaco < atual.pontuaco) {
+                    const fracaoAtual = atual.pontuacao - Math.floor(atual.pontuacao);
+                    const fracaoProximo = proximo.pontuacao - Math.floor(proximo.pontuacao);
+
+                    if (fracaoProximo > fracaoAtual) {
                         trocou = true
                         const temporario = associadosSemBandeja[j];
                         associadosSemBandeja[j] = associadosSemBandeja[j + 1];
@@ -118,38 +121,45 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
                         continue
                     }
 
-                    if (proximo.pontuaco == atual.pontuaco) {
+                    if (fracaoAtual == fracaoProximo) {
 
                         if (proximo.familias < atual.familias) {
                             trocou = true
-                
+
                             const temporario = associadosSemBandeja[j];
                             associadosSemBandeja[j] = associadosSemBandeja[j + 1];
                             associadosSemBandeja[j + 1] = temporario;
                             continue
                         }
 
-                        const nomeOrdenacao = proximo.nome.localeCompare(atual.nome, "pt-BR", { sensitivity: "base" })
+                        else if (proximo.familias == atual.familias) {
+                            const nomeOrdenacao = proximo.nome.localeCompare(atual.nome, "pt-BR", { sensitivity: "base" })
 
-                        if (nomeOrdenacao < 0) {
-                            trocou = true
-                            
-                            const temporario = associadosSemBandeja[j];
-                            associadosSemBandeja[j] = associadosSemBandeja[j + 1];
-                            associadosSemBandeja[j + 1] = temporario;
-                            continue
+                            if (nomeOrdenacao < 0) {
+                                trocou = true
+
+                                const temporario = associadosSemBandeja[j];
+                                associadosSemBandeja[j] = associadosSemBandeja[j + 1];
+                                associadosSemBandeja[j + 1] = temporario;
+                                continue
+                            } else if (nomeOrdenacao === 0) {
+
+                                const cnpjOrdenacao = proximo.cnpj.localeCompare(atual.cnpj, "pt-BR", { sensitivity: "base" })
+
+                                if (cnpjOrdenacao < 0) {
+
+                                    trocou = true
+
+                                    const temporario = associadosSemBandeja[j];
+                                    associadosSemBandeja[j] = associadosSemBandeja[j + 1];
+                                    associadosSemBandeja[j + 1] = temporario;
+                                    continue
+                                }
+
+                            }
+
                         }
 
-                        const cnpjOrdenacao = proximo.cnpj.localeCompare(atual.cnpj, "pt-BR", { sensitivity: "base" })
-
-                        if (cnpjOrdenacao < 0) {
-                            trocou = true
-                           
-                            const temporario = associadosSemBandeja[j];
-                            associadosSemBandeja[j] = associadosSemBandeja[j + 1];
-                            associadosSemBandeja[j + 1] = temporario;
-                            continue
-                        }
                     }
 
                 }
@@ -164,8 +174,8 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
             let bandejaAdicionada = false
             while (loteDisponivel > 0) {
 
-                if(associadosSemBandeja.length == index) {
-                    if(!bandejaAdicionada) {
+                if (associadosSemBandeja.length == index) {
+                    if (!bandejaAdicionada) {
                         break
                     }
                     index = 0
@@ -201,6 +211,28 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
 
         return distribuido
     })
+
+    for (let i: number = 0; i < associadosDistribuidos.length; i++) {
+        for (let j: number = 0; j < associadosDistribuidos.length - 1; j++) {
+            const atual = associadosDistribuidos[j]
+            const proximo = associadosDistribuidos[j + 1]
+
+            if (proximo.mudas > atual.mudas) {
+                const temporario = atual
+                associadosDistribuidos[j] = proximo
+                associadosDistribuidos[j + 1] = temporario
+            } else if (proximo.mudas == atual.mudas) {
+
+                const resultado = proximo.nome.localeCompare(atual.nome, "pt-BR", { sensitivity: "base" })
+
+                if (resultado < 0) {
+                    const temporario = atual
+                    associadosDistribuidos[j] = proximo
+                    associadosDistribuidos[j + 1] = temporario
+                }
+            }
+        }
+    }
 
     const resultadoDistribuicao: ResultadoRateio = {
         distribuicao: associadosDistribuidos,

@@ -213,3 +213,167 @@ describe("Distribui corretamente os lotes entre as associações", () => {
         expect(ratearMudas(totalMudas, associacoes)).toEqual(resultadoEsperado);
     });
 })
+
+describe("Erro ao realizar rateio", () => {
+
+    it("CNPJs duplicados", () => {
+        const totalMudas = 18_000
+        const associacoes: Associacao[] = [
+            {
+                nome: "ASPRORIO",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            },
+            {
+                nome: "ASPRORIO_2",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            }]
+
+
+        expect(() => ratearMudas(totalMudas, associacoes)).toThrow(`CNPJs duplicados: ${JSON.stringify(associacoes.map(a => a.cnpj))}`)
+    })
+
+    it("deve retornar erro com totalMudas possuindo valor negativo ou zero", () => {
+        const totalMudas = -18_000
+        const associacoes: Associacao[] = [
+            {
+                nome: "ASPRORIO",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            },
+            {
+                nome: "ASPRORIO_2",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "22.222.222/0001-22",
+                situacao: "regular"
+            }]
+
+        expect(() => ratearMudas(totalMudas, associacoes)).toThrow(`totalMudas não pode receber valores negativos ou zero.`)
+    })
+
+    it("deve retornar erro com cotaMaxima possuindo valor negativo", () => {
+        const totalMudas = 18_000
+        const associacoes: Associacao[] = [
+            {
+                nome: "ASPRORIO",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: -4_000,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            },
+            {
+                nome: "ASPRORIO_2",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "22.222.222/0001-22",
+                situacao: "regular"
+            }]
+
+        expect(() => ratearMudas(totalMudas, associacoes)).toThrow(`Associação ${associacoes[0].nome} de CNPJ ${associacoes[0].cnpj} possui uma cota máxima negativa de ${associacoes[0].cotaMaxima}`)
+    })
+
+    it("deve retornar erro com associações famílias com valor negativo", () => {
+        const totalMudas = 18_000
+        const associacoes: Associacao[] = [
+            {
+                nome: "ASPRORIO",
+                municipio: "Espigao D Oeste",
+                familias: -120,
+                cotaMaxima: 4_000,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            },
+            {
+                nome: "ASPRORIO_2",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "22.222.222/0001-22",
+                situacao: "regular"
+            }]
+
+        expect(() => ratearMudas(totalMudas, associacoes)).toThrow(`Associação ${associacoes[0].nome} de CNPJ ${associacoes[0].cnpj} possui um número de famílias negativo de ${associacoes[0].familias}`)
+    })
+    it("deve retornar erro com associações que tiverem a cotaMaxima em ponto flutuante ao invés de inteiros positivos", () => {
+        const totalMudas = 18_000
+        const associacoes: Associacao[] = [
+            {
+                nome: "ASPRORIO",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000.01,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            },
+            {
+                nome: "ASPRORIO_2",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "22.222.222/0001-22",
+                situacao: "regular"
+            }]
+
+        expect(() => ratearMudas(totalMudas, associacoes)).toThrow(`Associação ${associacoes[0].nome} de CNPJ ${associacoes[0].cnpj} não deve ter o valor da cota máxima como um número flutuante, valor encontrado de cotaMaxima é ${associacoes[0].cotaMaxima}`)
+    })
+
+    it("deve retornar erro com associações que tiverem a familias em ponto flutuante ao invés de inteiros positivos", () => {
+        const totalMudas = 18_000
+        const associacoes: Associacao[] = [
+            {
+                nome: "ASPRORIO",
+                municipio: "Espigao D Oeste",
+                familias: 120.12,
+                cotaMaxima: 4_000,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            },
+            {
+                nome: "ASPRORIO_2",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "22.222.222/0001-22",
+                situacao: "regular"
+            }]
+
+        expect(() => ratearMudas(totalMudas, associacoes)).toThrow(`Associação ${associacoes[0].nome} de CNPJ ${associacoes[0].cnpj} não deve ter o valor das famílias como um número flutuante, valor encontrado de familias é ${associacoes[0].familias}`)
+    })
+
+    it("deve retornar erro com valor de totalMudas sendo um número flutuante e não inteiro positivo", () => {
+        const totalMudas = 18_000.12
+        const associacoes: Associacao[] = [
+            {
+                nome: "ASPRORIO",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "07.308.498/0001-01",
+                situacao: "regular"
+            },
+            {
+                nome: "ASPRORIO_2",
+                municipio: "Espigao D Oeste",
+                familias: 120,
+                cotaMaxima: 4_000,
+                cnpj: "22.222.222/0001-22",
+                situacao: "regular"
+            }]
+
+        expect(() => ratearMudas(totalMudas, associacoes)).toThrow(`O campo totalMudas não pode ser um número flutuante, deve ser um inteiro positivo. O valor atual é ${totalMudas}`)
+    })
+})

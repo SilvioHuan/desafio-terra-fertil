@@ -39,13 +39,51 @@ export class RateioError extends Error {
 
 export function ratearMudas(totalMudas: number, associados: Associacao[]): ResultadoRateio {
 
-    //const associadosAprovados = associados.filter(associado => associado.situacao === "regular" && associado.familias > 0);
+    if(!Number.isInteger(totalMudas) && typeof totalMudas === 'number' && !Number.isNaN(totalMudas)) {
+        throw new RateioError(`O campo totalMudas não pode ser um número flutuante, deve ser um inteiro positivo. O valor atual é ${totalMudas}`)
+    }
+
+    if (totalMudas <= 0) {
+        throw new RateioError(`totalMudas não pode receber valores negativos ou zero.`)
+    }
+
+
+    associados.forEach((associacao) => {
+        if (associacao.cotaMaxima < 0) {
+            throw new RateioError(`Associação ${associacao.nome} de CNPJ ${associacao.cnpj} possui uma cota máxima negativa de ${associacao.cotaMaxima}`)
+        }
+
+        if (associacao.familias < 0) {
+            throw new RateioError(`Associação ${associacao.nome} de CNPJ ${associacao.cnpj} possui um número de famílias negativo de ${associacao.familias}`)
+        }
+
+        if (!Number.isInteger(associacao.cotaMaxima) && typeof associacao.cotaMaxima === 'number' && !Number.isNaN(associacao.cotaMaxima)) {
+            throw new RateioError(`Associação ${associacao.nome} de CNPJ ${associacao.cnpj} não deve ter o valor da cota máxima como um número flutuante, valor encontrado de cotaMaxima é ${associacao.cotaMaxima}`)
+        }
+
+        if (!Number.isInteger(associacao.familias) && typeof associacao.familias === 'number' && !Number.isNaN(associacao.familias)) {
+            throw new RateioError(`Associação ${associacao.nome} de CNPJ ${associacao.cnpj} não deve ter o valor das famílias como um número flutuante, valor encontrado de familias é ${associacao.familias}`)
+        }
+    })
+
+    for (let i: number = 0; i < associados.length; i++) {
+        for (let k: number = 0; k < associados.length; k++) {
+            const associadoAlvo = associados[k]
+            const associadoComparado = associados[i]
+
+            if (i !== k) {
+                if (associadoAlvo.cnpj === associadoComparado.cnpj) {
+                    throw new RateioError(`CNPJs duplicados: ${JSON.stringify(associados.map(a => a.cnpj))}`)
+                }
+            }
+        }
+    }
 
     let loteDisponivel = Math.floor(totalMudas / MUDAS_POR_BANDEJA);
 
     const sobraNaoDistribuida = (totalMudas - (loteDisponivel * MUDAS_POR_BANDEJA));
 
-    const somaDasFamilias = associados.reduce((familiasSomada, familiasAtuais) => familiasSomada + familiasAtuais.familias, 0)
+    const somaDasFamilias = associados.reduce((total, associacaoAtual) => total + associacaoAtual.familias, 0)
 
     const distribuicaoAssociados: DistribuicaoComPontuacao[] = associados.map(associacao => {
 
@@ -76,7 +114,6 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
 
         loteDisponivel = loteDisponivel > bandejaEncontrada ? loteDisponivel - bandejaEncontrada : 0
 
-        console.log(bandejaLimite)
 
         const distribuicao: DistribuicaoComPontuacao = {
             cnpj: associacao.cnpj,

@@ -106,6 +106,8 @@ describe("Distribui corretamente os lotes entre as associações", () => {
         expect(ratearMudas(totalMudas, associacoes)).toEqual(resultadoEsperado)
 
     })
+    
+    
 
     it("Maiores restos, sobra e ordenação", () => {
         const totalMudas = 5_180

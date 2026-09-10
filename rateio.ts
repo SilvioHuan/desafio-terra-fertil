@@ -2,7 +2,6 @@
 export const MUDAS_POR_BANDEJA = 50;
 
 export type SituacaoCadastral = "regular" | "suspensa" | "irregular";
-
 export interface Associacao {
     cnpj: string;
     nome: string;
@@ -25,14 +24,6 @@ export interface ResultadoRateio {
     totalDistribuido: number;
     sobraNaoDistribuida: number;
 }
-
-interface DistribuicaoComPontuacao extends Distribuicao {
-    pontuacao: number;
-    familias: number;
-    bandejaLimite: number;
-    situacao: SituacaoCadastral
-}
-
 export class RateioError extends Error {
 
 }
@@ -162,13 +153,14 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                         }
 
                         const fracaoAtual = () => {
-                            const cotaIdeal = loteDisponivel * associacaoAtual.familias / somaDasFamilias
-
+                            const loteTotalOriginal = Math.floor(totalMudas / MUDAS_POR_BANDEJA);
+                            const cotaIdeal = loteTotalOriginal * associacaoAtual.familias / somaDasFamilias;
                             return cotaIdeal - Math.floor(cotaIdeal)
                         }
 
                         const fracaoProximo = () => {
-                            const cotaIdeal = loteDisponivel * associacaoProxima.familias / somaDasFamilias
+                            const loteTotalOriginal = Math.floor(totalMudas / MUDAS_POR_BANDEJA);
+                            const cotaIdeal = loteTotalOriginal * associacaoProxima.familias / somaDasFamilias;
 
                             return cotaIdeal - Math.floor(cotaIdeal)
                         }
@@ -255,12 +247,6 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                 const bandejaDisponível = loteDisponivel > bandejaEncontrada ? bandejaEncontrada : loteDisponivel
 
 
-                if (bandejaDisponível == bandejasMaxima) {
-
-                    retirarFamilias += associacao.familias
-                    loteRetirar += bandejasMaxima
-
-                }
 
                 if (associacao.situacao !== "regular") {
 
@@ -274,8 +260,13 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                     return distribuido
                 }
 
-                loteRetirar += bandejaDisponível
-                retirarFamilias -= associacao.familias
+                if (bandejaDisponível == bandejasMaxima) {
+                    retirarFamilias += associacao.familias
+                    loteRetirar += bandejasMaxima
+                } else {
+               
+                    loteRetirar += bandejaDisponível
+                }
                 const distribuicao: Distribuicao = {
                     nome: associacao.nome,
                     cnpj: associacao.cnpj,
@@ -319,34 +310,3 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
     }
     return resultado
 }
-
-const totalMudas = 5_180
-const associacoes: Associacao[] = [
-    {
-        nome: "Alto Alegre",
-        municipio: "Vale do Anari",
-        cnpj: "02.785.883/0001-18",
-        familias: 10,
-        cotaMaxima: 100_000,
-        situacao: "regular"
-    },
-    {
-        nome: "Água Boa",
-        municipio: "Água Boa",
-        familias: 10,
-        cotaMaxima: 100_000,
-        cnpj: "34.537.183/0001-09",
-        situacao: "regular"
-    },
-    {
-        nome: "Boa Esperança",
-        municipio: "Novo Mundo",
-        familias: 5,
-        cotaMaxima: 3_000,
-        cnpj: "25.027.055/0001-16",
-        situacao: "regular"
-    }
-]
-
-const resultado = ratearMudas(totalMudas, associacoes)
-console.log(resultado)

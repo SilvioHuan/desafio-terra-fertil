@@ -37,9 +37,9 @@ export class RateioError extends Error {
 
 }
 
-export function ratearMudas(totalMudas: number, associados: Associacao[]): ResultadoRateio {
+export function ratearMudas(totalMudas: number, associacoes: Associacao[]): ResultadoRateio {
 
-    if(!Number.isInteger(totalMudas) && typeof totalMudas === 'number' && !Number.isNaN(totalMudas)) {
+    if (!Number.isInteger(totalMudas) && typeof totalMudas === 'number' && !Number.isNaN(totalMudas)) {
         throw new RateioError(`O campo totalMudas não pode ser um número flutuante, deve ser um inteiro positivo. O valor atual é ${totalMudas}`)
     }
 
@@ -48,7 +48,7 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
     }
 
 
-    associados.forEach((associacao) => {
+    associacoes.forEach((associacao) => {
         if (associacao.cotaMaxima < 0) {
             throw new RateioError(`Associação ${associacao.nome} de CNPJ ${associacao.cnpj} possui uma cota máxima negativa de ${associacao.cotaMaxima}`)
         }
@@ -66,131 +66,157 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
         }
     })
 
-    for (let i: number = 0; i < associados.length; i++) {
-        for (let k: number = 0; k < associados.length; k++) {
-            const associadoAlvo = associados[k]
-            const associadoComparado = associados[i]
+    for (let i: number = 0; i < associacoes.length; i++) {
+        for (let k: number = 0; k < associacoes.length; k++) {
+            const associadoAlvo = associacoes[k]
+            const associadoComparado = associacoes[i]
 
             if (i !== k) {
                 if (associadoAlvo.cnpj === associadoComparado.cnpj) {
-                    throw new RateioError(`CNPJs duplicados: ${JSON.stringify(associados.map(a => a.cnpj))}`)
+                    throw new RateioError(`CNPJs duplicados: ${JSON.stringify(associacoes.map(a => a.cnpj))}`)
                 }
             }
         }
     }
 
-    let loteDisponivel = Math.floor(totalMudas / MUDAS_POR_BANDEJA);
+    let somaDasFamilias = associacoes.reduce((valorAtual, associacao) => {
+        if (associacao.situacao === "regular") {
+            return valorAtual + associacao.familias
+        }
+        return valorAtual
+    }, 0)
 
-    const sobraNaoDistribuida = (totalMudas - (loteDisponivel * MUDAS_POR_BANDEJA));
+    let restos = totalMudas % MUDAS_POR_BANDEJA
 
-    const somaDasFamilias = associados.reduce((total, associacaoAtual) => total + associacaoAtual.familias, 0)
+    let loteDisponivel = Math.floor(totalMudas / MUDAS_POR_BANDEJA)
 
-    const distribuicaoAssociados: DistribuicaoComPontuacao[] = associados.map(associacao => {
+    let loteRetirar = 0;
 
+    let retirarFamilias = 0;
+
+    const primeiraDistribuicao: Distribuicao[] = associacoes.map(associacao => {
+
+        const bandejasMaxima = associacao.cotaMaxima / MUDAS_POR_BANDEJA
+
+        const cotaIdeal = loteDisponivel * associacao.familias / somaDasFamilias
+
+        const bandejaEncontrada = Math.floor(cotaIdeal) > bandejasMaxima ? bandejasMaxima : Math.floor(cotaIdeal)
+
+        const bandejaDisponível = loteDisponivel > bandejaEncontrada ? bandejaEncontrada : loteDisponivel
+
+        if (bandejaDisponível == bandejasMaxima) {
+            retirarFamilias += associacao.familias
+            loteRetirar += bandejasMaxima
+        }
         if (associacao.situacao !== "regular") {
-
-            const distribuicao: DistribuicaoComPontuacao = {
+            const distribuido: Distribuicao = {
                 nome: associacao.nome,
                 cnpj: associacao.cnpj,
                 bandejas: 0,
                 mudas: 0,
-                pontuacao: 0,
-                familias: associacao.familias,
-                bandejaLimite: 0,
-                situacao: associacao.situacao,
                 motivoExclusao: associacao.situacao
             }
-            return distribuicao
+            return distribuido
         }
 
-        const cotaIdeal = Math.floor(totalMudas / MUDAS_POR_BANDEJA) * associacao.familias / somaDasFamilias
-
-        const bandejaLimite = cotaIdeal > 0 ? Math.floor(associacao.cotaMaxima / MUDAS_POR_BANDEJA) : cotaIdeal
-
-        const bandejaEncontrada = Math.floor(cotaIdeal) > bandejaLimite ? bandejaLimite : Math.floor(cotaIdeal)
-
-        const bandejaDisponivel = loteDisponivel > bandejaEncontrada ? bandejaEncontrada : loteDisponivel;
-
-
-        loteDisponivel = loteDisponivel > bandejaEncontrada ? loteDisponivel - bandejaEncontrada : 0
-
-
-        const distribuicao: DistribuicaoComPontuacao = {
-            cnpj: associacao.cnpj,
+        const distribuicao: Distribuicao = {
             nome: associacao.nome,
-            bandejas: bandejaDisponivel,
-            mudas: bandejaDisponivel * MUDAS_POR_BANDEJA,
-            pontuacao: cotaIdeal,
-            familias: associacao.familias,
-            bandejaLimite: bandejaLimite,
-            situacao: "regular"
+            cnpj: associacao.cnpj,
+            bandejas: bandejaDisponível,
+            mudas: bandejaDisponível * MUDAS_POR_BANDEJA
         }
+
         return distribuicao
-    });
+    })
+
+    loteDisponivel -= loteRetirar
+    somaDasFamilias -= retirarFamilias
+
+    while (loteDisponivel > 0) {
+
+        loteRetirar = 0
+        retirarFamilias = 0
+        const distribuicaoRepescada = associacoes.filter(a => primeiraDistribuicao.some(dis => dis.cnpj === a.cnpj && a.cotaMaxima / MUDAS_POR_BANDEJA > dis.bandejas))
+
+        if (distribuicaoRepescada.length > 0) {
+
+            if (distribuicaoRepescada.length > 1 && loteDisponivel == 1) {
+
+                for (let i: number = 0; i < distribuicaoRepescada.length; i++) {
+
+                    let trocou = false;
+
+                    for (let j: number = 0; j < distribuicaoRepescada.length - 1; j++) {
 
 
-    if (loteDisponivel > 0 && distribuicaoAssociados.length > 0) {
+                        const atual = distribuicaoRepescada[j];
 
-        const associadosSemBandeja: DistribuicaoComPontuacao[] = distribuicaoAssociados.filter(associacao => associacao.bandejas < associacao.bandejaLimite && associacao.situacao === "regular")
+                        const proximo = distribuicaoRepescada[i];
 
+                        const associacaoAtual = associacoes.find(a => a.cnpj === atual.cnpj)
 
-        if (associadosSemBandeja.length > 0) {
+                        const associacaoProxima = associacoes.find(a => a.cnpj === proximo.cnpj)
 
-            for (let i: number = 0; i < associadosSemBandeja.length; i++) {
-
-                let trocou = false;
-
-                for (let j: number = 0; j < associadosSemBandeja.length - 1; j++) {
-
-                    const atual = associadosSemBandeja[j];
-
-                    const proximo = associadosSemBandeja[j + 1];
-
-                    const fracaoAtual = atual.pontuacao - Math.floor(atual.pontuacao);
-                    const fracaoProximo = proximo.pontuacao - Math.floor(proximo.pontuacao);
-
-                    if (fracaoProximo > fracaoAtual) {
-                        trocou = true
-                        const temporario = associadosSemBandeja[j];
-                        associadosSemBandeja[j] = associadosSemBandeja[j + 1];
-                        associadosSemBandeja[j + 1] = temporario;
-
-                        continue
-                    }
-
-                    if (fracaoAtual == fracaoProximo) {
-
-                        if (proximo.familias < atual.familias) {
-                            trocou = true
-
-                            const temporario = associadosSemBandeja[j];
-                            associadosSemBandeja[j] = associadosSemBandeja[j + 1];
-                            associadosSemBandeja[j + 1] = temporario;
+                        if (!associacaoAtual || !associacaoProxima) {
                             continue
                         }
 
-                        else if (proximo.familias == atual.familias) {
-                            const nomeOrdenacao = proximo.nome.localeCompare(atual.nome, "pt-BR", { sensitivity: "base" })
+                        const fracaoAtual = () => {
+                            const cotaIdeal = loteDisponivel * associacaoAtual.familias / somaDasFamilias
 
-                            if (nomeOrdenacao < 0) {
+                            return cotaIdeal - Math.floor(cotaIdeal)
+                        }
+
+                        const fracaoProximo = () => {
+                            const cotaIdeal = loteDisponivel * associacaoProxima.familias / somaDasFamilias
+
+                            return cotaIdeal - Math.floor(cotaIdeal)
+                        }
+
+                        if (fracaoProximo > fracaoAtual) {
+                            trocou = true
+                            const temporario = distribuicaoRepescada[i];
+                            distribuicaoRepescada[i] = distribuicaoRepescada[j];
+                            distribuicaoRepescada[j] = temporario;
+
+                            continue
+                        }
+
+                        if (fracaoAtual == fracaoProximo) {
+
+                            if (proximo.familias < atual.familias) {
                                 trocou = true
 
-                                const temporario = associadosSemBandeja[j];
-                                associadosSemBandeja[j] = associadosSemBandeja[j + 1];
-                                associadosSemBandeja[j + 1] = temporario;
+                                const temporario = distribuicaoRepescada[i];
+                                distribuicaoRepescada[i] = distribuicaoRepescada[j];
+                                distribuicaoRepescada[j] = temporario;
                                 continue
-                            } else if (nomeOrdenacao === 0) {
+                            }
 
-                                const cnpjOrdenacao = proximo.cnpj.localeCompare(atual.cnpj, "pt-BR", { sensitivity: "base" })
+                            else if (proximo.familias == atual.familias) {
+                                const nomeOrdenacao = proximo.nome.localeCompare(atual.nome, "pt-BR", { sensitivity: "base" })
 
-                                if (cnpjOrdenacao < 0) {
-
+                                if (nomeOrdenacao < 0) {
                                     trocou = true
 
-                                    const temporario = associadosSemBandeja[j];
-                                    associadosSemBandeja[j] = associadosSemBandeja[j + 1];
-                                    associadosSemBandeja[j + 1] = temporario;
+                                    const temporario = distribuicaoRepescada[i];
+                                    distribuicaoRepescada[i] = distribuicaoRepescada[j];
+                                    distribuicaoRepescada[j] = temporario;
                                     continue
+                                } else if (nomeOrdenacao === 0) {
+
+                                    const cnpjOrdenacao = proximo.cnpj.localeCompare(atual.cnpj, "pt-BR", { sensitivity: "base" })
+
+                                    if (cnpjOrdenacao < 0) {
+
+                                        trocou = true
+
+                                        const temporario = distribuicaoRepescada[j];
+                                        distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
+                                        distribuicaoRepescada[j + 1] = temporario;
+                                        continue
+                                    }
+
                                 }
 
                             }
@@ -199,82 +225,127 @@ export function ratearMudas(totalMudas: number, associados: Associacao[]): Resul
 
                     }
 
-                }
-
-                if (!trocou) {
-                    break
-                }
-            }
-
-            let index = 0;
-
-            let bandejaAdicionada = false
-            while (loteDisponivel > 0) {
-
-                if (associadosSemBandeja.length == index) {
-                    if (!bandejaAdicionada) {
+                    if (!trocou) {
                         break
                     }
-                    index = 0
-                    bandejaAdicionada = false
                 }
 
-                if (associadosSemBandeja[index].bandejas < associadosSemBandeja[index].bandejaLimite) {
-                    associadosSemBandeja[index].bandejas += 1
-                    associadosSemBandeja[index].mudas += MUDAS_POR_BANDEJA
-                    loteDisponivel -= 1
-                    bandejaAdicionada = true
+                for(const associacao of primeiraDistribuicao) {
+                    if(distribuicaoRepescada[0].cnpj === associacao.cnpj) {
+                        associacao.bandejas += loteDisponivel
+                        associacao.mudas += loteDisponivel * MUDAS_POR_BANDEJA
+                        loteDisponivel -= 1
+                        console.log("caiu aqui")
+                        break
+                    }
                 }
-                index++
-
+                continue
             }
 
-        }
+            const distribuicao = distribuicaoRepescada.map(associacao => {
 
+                const bandejasMaxima = associacao.cotaMaxima / MUDAS_POR_BANDEJA
 
+                const cotaIdeal = loteDisponivel * associacao.familias / somaDasFamilias
 
-    }
+                const bandejaEncontrada = Math.floor(cotaIdeal) > bandejasMaxima ? bandejasMaxima : Math.floor(cotaIdeal)
 
-    const associadosDistribuidos: Distribuicao[] = distribuicaoAssociados.map(associado => {
-        const distribuido: Distribuicao = {
-            cnpj: associado.cnpj,
-            nome: associado.nome,
-            bandejas: associado.bandejas,
-            mudas: associado.mudas,
-            ...(associado.motivoExclusao && {
-                motivoExclusao: associado.motivoExclusao
+                const bandejaDisponível = loteDisponivel > bandejaEncontrada ? bandejaEncontrada : loteDisponivel
+
+                console.log("BandejaDisponivel", bandejaDisponível, "BandejaMaxima", bandejasMaxima, "loteDiponivel", loteDisponivel, "bandejaEncontrada", bandejaEncontrada)
+
+                if (bandejaDisponível == bandejasMaxima) {
+
+                    retirarFamilias += associacao.familias
+                    loteRetirar += bandejasMaxima
+
+                }
+
+                if (associacao.situacao !== "regular") {
+
+                    const distribuido: Distribuicao = {
+                        nome: associacao.nome,
+                        cnpj: associacao.cnpj,
+                        bandejas: 0,
+                        mudas: 0
+                    }
+
+                    return distribuido
+                }
+
+                loteRetirar += bandejaDisponível
+                retirarFamilias -= associacao.familias
+                const distribuicao: Distribuicao = {
+                    nome: associacao.nome,
+                    cnpj: associacao.cnpj,
+                    bandejas: bandejaDisponível,
+                    mudas: bandejaDisponível * MUDAS_POR_BANDEJA
+                }
+
+                return distribuicao
             })
-        }
 
-        return distribuido
-    })
-
-    for (let i: number = 0; i < associadosDistribuidos.length; i++) {
-        for (let j: number = 0; j < associadosDistribuidos.length - 1; j++) {
-            const atual = associadosDistribuidos[j]
-            const proximo = associadosDistribuidos[j + 1]
-
-            if (proximo.mudas > atual.mudas) {
-                const temporario = atual
-                associadosDistribuidos[j] = proximo
-                associadosDistribuidos[j + 1] = temporario
-            } else if (proximo.mudas == atual.mudas) {
-
-                const resultado = proximo.nome.localeCompare(atual.nome, "pt-BR", { sensitivity: "base" })
-
-                if (resultado < 0) {
-                    const temporario = atual
-                    associadosDistribuidos[j] = proximo
-                    associadosDistribuidos[j + 1] = temporario
+            primeiraDistribuicao.forEach(associacao => {
+                const associacaoEncontrada = distribuicao.find(a => a.cnpj === associacao.cnpj)
+                if (associacaoEncontrada) {
+                    associacao.bandejas = associacaoEncontrada.bandejas
+                    associacao.mudas = associacaoEncontrada.mudas
                 }
-            }
+
+            })
+
+
+            loteDisponivel -= loteRetirar
+            somaDasFamilias -= retirarFamilias
+
+            continue
+
         }
+        break
+
     }
 
-    const resultadoDistribuicao: ResultadoRateio = {
-        distribuicao: associadosDistribuidos,
-        totalDistribuido: totalMudas - (loteDisponivel * MUDAS_POR_BANDEJA) - sobraNaoDistribuida,
-        sobraNaoDistribuida: sobraNaoDistribuida + (loteDisponivel * MUDAS_POR_BANDEJA)
+    const resultado: ResultadoRateio = {
+        distribuicao: primeiraDistribuicao.sort((a, b) => {
+            if (b.mudas !== a.mudas) {
+                return b.mudas - a.mudas
+            }
+
+            return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" })
+        }),
+        totalDistribuido: totalMudas - (loteDisponivel * MUDAS_POR_BANDEJA) - restos,
+        sobraNaoDistribuida: restos + (loteDisponivel * MUDAS_POR_BANDEJA)
     }
-    return resultadoDistribuicao
+    return resultado
 }
+
+ const totalMudas = 5_180
+        const associacoes: Associacao[] = [
+            {
+                nome: "Alto Alegre",
+                municipio: "Vale do Anari",
+                cnpj: "02.785.883/0001-18",
+                familias: 10,
+                cotaMaxima: 100_000,
+                situacao: "regular"
+            },
+            {
+                nome: "Água Boa",
+                municipio: "Água Boa",
+                familias: 10,
+                cotaMaxima: 100_000,
+                cnpj: "34.537.183/0001-09",
+                situacao: "regular"
+            },
+            {
+                nome: "Boa Esperança",
+                municipio: "Novo Mundo",
+                familias: 5,
+                cotaMaxima: 3_000,
+                cnpj: "25.027.055/0001-16",
+                situacao: "regular"
+            }
+        ]
+
+const resultado = ratearMudas(totalMudas, associacoes)
+console.log(resultado)

@@ -70,34 +70,34 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
         }
     }
 
-    let somaDasFamilias = associacoes.reduce((valorAtual, associacao) => {
+    let somaDasFamilias = associacoes.reduce((valorassociacaoAtual , associacao) => {
         if (associacao.situacao === "regular") {
-            return valorAtual + associacao.familias
+            return valorassociacaoAtual  + associacao.familias
         }
-        return valorAtual
+        return valorassociacaoAtual 
     }, 0)
 
     let restos = totalMudas % MUDAS_POR_BANDEJA
 
     let loteDisponivel = Math.floor(totalMudas / MUDAS_POR_BANDEJA)
 
-    let loteRetirar = 0;
+    let bandejasDistribuidasNestaRodada = 0;
 
-    let retirarFamilias = 0;
+    let familiasSaturadas = 0;
 
-    const primeiraDistribuicao: Distribuicao[] = associacoes.map(associacao => {
+    const resultadoAcumulado: Distribuicao[] = associacoes.map(associacao => {
 
         const bandejasMaxima = associacao.cotaMaxima / MUDAS_POR_BANDEJA
 
         const cotaIdeal = loteDisponivel * associacao.familias / somaDasFamilias
 
-        const bandejaEncontrada = Math.floor(cotaIdeal) > bandejasMaxima ? bandejasMaxima : Math.floor(cotaIdeal)
+        const bandejasCalculadas  = Math.floor(cotaIdeal) > bandejasMaxima ? bandejasMaxima : Math.floor(cotaIdeal)
 
-        const bandejaDisponível = loteDisponivel > bandejaEncontrada ? bandejaEncontrada : loteDisponivel
+        const bandejaDisponível = loteDisponivel > bandejasCalculadas  ? bandejasCalculadas  : loteDisponivel
 
         if (bandejaDisponível == bandejasMaxima) {
-            retirarFamilias += associacao.familias
-            loteRetirar += bandejasMaxima
+            familiasSaturadas += associacao.familias
+            bandejasDistribuidasNestaRodada += bandejasMaxima
         }
         if (associacao.situacao !== "regular") {
             const distribuido: Distribuicao = {
@@ -120,92 +120,92 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
         return distribuicao
     })
 
-    loteDisponivel -= loteRetirar
-    somaDasFamilias -= retirarFamilias
+    loteDisponivel -= bandejasDistribuidasNestaRodada
+    somaDasFamilias -= familiasSaturadas
 
     while (loteDisponivel > 0) {
 
-        loteRetirar = 0
-        retirarFamilias = 0
-        const distribuicaoRepescada = associacoes.filter(a => primeiraDistribuicao.some(dis => dis.cnpj === a.cnpj && a.cotaMaxima / MUDAS_POR_BANDEJA > dis.bandejas))
+        bandejasDistribuidasNestaRodada = 0
+        familiasSaturadas = 0
+        const associacoesRestantes= associacoes.filter(a => resultadoAcumulado.some(dis => dis.cnpj === a.cnpj && a.cotaMaxima / MUDAS_POR_BANDEJA > dis.bandejas))
 
-        if (distribuicaoRepescada.length > 0) {
+        if (associacoesRestantes.length > 0) {
 
-            if (distribuicaoRepescada.length > 1) {
+            if (associacoesRestantes.length > 1) {
 
-                for (let i: number = 0; i < distribuicaoRepescada.length; i++) {
+                for (let i: number = 0; i < associacoesRestantes.length; i++) {
 
                     let trocou = false;
 
-                    for (let j: number = 0; j < distribuicaoRepescada.length - 1; j++) {
+                    for (let j: number = 0; j < associacoesRestantes.length - 1; j++) {
 
 
-                        const atual = distribuicaoRepescada[j];
+                        const associacaoAtual  = associacoesRestantes[j];
 
-                        const proximo = distribuicaoRepescada[j + 1];
+                        const associacaoSeguinte = associacoesRestantes[j + 1];
 
-                        const associacaoAtual = associacoes.find(a => a.cnpj === atual.cnpj)
+                        const associacaoassociacaoAtual  = associacoes.find(a => a.cnpj === associacaoAtual .cnpj)
 
-                        const associacaoProxima = associacoes.find(a => a.cnpj === proximo.cnpj)
+                        const associacaoProxima = associacoes.find(a => a.cnpj === associacaoSeguinte.cnpj)
 
-                        if (!associacaoAtual || !associacaoProxima) {
+                        if (!associacaoassociacaoAtual  || !associacaoProxima) {
                             continue
                         }
 
-                        const fracaoAtual = () => {
+                        const fracaoassociacaoAtual  = () => {
                             const loteTotalOriginal = Math.floor(totalMudas / MUDAS_POR_BANDEJA);
-                            const cotaIdeal = loteTotalOriginal * associacaoAtual.familias / somaDasFamilias;
+                            const cotaIdeal = loteTotalOriginal * associacaoassociacaoAtual .familias / somaDasFamilias;
                             return cotaIdeal - Math.floor(cotaIdeal)
                         }
 
-                        const fracaoProximo = () => {
+                        const fracaoassociacaoSeguinte = () => {
                             const loteTotalOriginal = Math.floor(totalMudas / MUDAS_POR_BANDEJA);
                             const cotaIdeal = loteTotalOriginal * associacaoProxima.familias / somaDasFamilias;
 
                             return cotaIdeal - Math.floor(cotaIdeal)
                         }
 
-                        if (fracaoProximo() > fracaoAtual()) {
+                        if (fracaoassociacaoSeguinte() > fracaoassociacaoAtual ()) {
                             trocou = true
-                            const temporario = distribuicaoRepescada[j];
-                            distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
-                            distribuicaoRepescada[j + 1] = temporario;
+                            const temporario = associacoesRestantes[j];
+                            associacoesRestantes[j] = associacoesRestantes[j + 1];
+                            associacoesRestantes[j + 1] = temporario;
 
                             continue
                         }
 
-                        if (fracaoAtual() == fracaoProximo()) {
+                        if (fracaoassociacaoAtual () == fracaoassociacaoSeguinte()) {
 
-                            if (proximo.familias > atual.familias) {
+                            if (associacaoSeguinte.familias > associacaoAtual .familias) {
                                 trocou = true
 
-                                const temporario = distribuicaoRepescada[j];
-                                distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
-                                distribuicaoRepescada[j + 1] = temporario;
+                                const temporario = associacoesRestantes[j];
+                                associacoesRestantes[j] = associacoesRestantes[j + 1];
+                                associacoesRestantes[j + 1] = temporario;
                                 continue
                             }
 
-                            else if (proximo.familias == atual.familias) {
-                                const nomeOrdenacao = proximo.nome.localeCompare(atual.nome, "pt-BR", { sensitivity: "base" })
+                            else if (associacaoSeguinte.familias == associacaoAtual .familias) {
+                                const nomeOrdenacao = associacaoSeguinte.nome.localeCompare(associacaoAtual .nome, "pt-BR", { sensitivity: "base" })
 
                                 if (nomeOrdenacao < 0) {
                                     trocou = true
 
-                                    const temporario = distribuicaoRepescada[j];
-                                    distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
-                                    distribuicaoRepescada[j + 1] = temporario;
+                                    const temporario = associacoesRestantes[j];
+                                    associacoesRestantes[j] = associacoesRestantes[j + 1];
+                                    associacoesRestantes[j + 1] = temporario;
                                     continue
                                 } else if (nomeOrdenacao === 0) {
 
-                                    const cnpjOrdenacao = proximo.cnpj.localeCompare(atual.cnpj, "pt-BR", { sensitivity: "base" })
+                                    const cnpjOrdenacao = associacaoSeguinte.cnpj.localeCompare(associacaoAtual .cnpj, "pt-BR", { sensitivity: "base" })
 
                                     if (cnpjOrdenacao < 0) {
 
                                         trocou = true
 
-                                        const temporario = distribuicaoRepescada[j];
-                                        distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
-                                        distribuicaoRepescada[j + 1] = temporario;
+                                        const temporario = associacoesRestantes[j];
+                                        associacoesRestantes[j] = associacoesRestantes[j + 1];
+                                        associacoesRestantes[j + 1] = temporario;
                                         continue
                                     }
 
@@ -223,8 +223,8 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                 }
 
                 if (loteDisponivel == 1) {
-                    for (const associacao of primeiraDistribuicao) {
-                        if (distribuicaoRepescada[0].cnpj === associacao.cnpj) {
+                    for (const associacao of resultadoAcumulado) {
+                        if (associacoesRestantes[0].cnpj === associacao.cnpj) {
                             associacao.bandejas += loteDisponivel
                             associacao.mudas += loteDisponivel * MUDAS_POR_BANDEJA
                             loteDisponivel -= 1
@@ -236,15 +236,15 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
 
             }
 
-            const distribuicao = distribuicaoRepescada.map(associacao => {
+            const distribuicao = associacoesRestantes.map(associacao => {
 
                 const bandejasMaxima = associacao.cotaMaxima / MUDAS_POR_BANDEJA
 
                 const cotaIdeal = loteDisponivel * associacao.familias / somaDasFamilias
 
-                const bandejaEncontrada = Math.floor(cotaIdeal) > bandejasMaxima ? bandejasMaxima : Math.floor(cotaIdeal)
+                const bandejasCalculadas  = Math.floor(cotaIdeal) > bandejasMaxima ? bandejasMaxima : Math.floor(cotaIdeal)
 
-                const bandejaDisponível = loteDisponivel > bandejaEncontrada ? bandejaEncontrada : loteDisponivel
+                const bandejaDisponível = loteDisponivel > bandejasCalculadas  ? bandejasCalculadas  : loteDisponivel
 
 
 
@@ -261,11 +261,11 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                 }
 
                 if (bandejaDisponível == bandejasMaxima) {
-                    retirarFamilias += associacao.familias
-                    loteRetirar += bandejasMaxima
+                    familiasSaturadas += associacao.familias
+                    bandejasDistribuidasNestaRodada += bandejasMaxima
                 } else {
                
-                    loteRetirar += bandejaDisponível
+                    bandejasDistribuidasNestaRodada += bandejaDisponível
                 }
                 const distribuicao: Distribuicao = {
                     nome: associacao.nome,
@@ -277,7 +277,7 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                 return distribuicao
             })
 
-            primeiraDistribuicao.forEach(associacao => {
+            resultadoAcumulado.forEach(associacao => {
                 const associacaoEncontrada = distribuicao.find(a => a.cnpj === associacao.cnpj)
                 if (associacaoEncontrada) {
                     associacao.bandejas = associacaoEncontrada.bandejas
@@ -287,8 +287,8 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
             })
 
 
-            loteDisponivel -= loteRetirar
-            somaDasFamilias -= retirarFamilias
+            loteDisponivel -= bandejasDistribuidasNestaRodada
+            somaDasFamilias -= familiasSaturadas
 
             continue
 
@@ -298,7 +298,7 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
     }
 
     const resultado: ResultadoRateio = {
-        distribuicao: primeiraDistribuicao.sort((a, b) => {
+        distribuicao: resultadoAcumulado.sort((a, b) => {
             if (b.mudas !== a.mudas) {
                 return b.mudas - a.mudas
             }

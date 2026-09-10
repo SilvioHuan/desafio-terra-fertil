@@ -140,7 +140,7 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
 
         if (distribuicaoRepescada.length > 0) {
 
-            if (distribuicaoRepescada.length > 1 && loteDisponivel == 1) {
+            if (distribuicaoRepescada.length > 1) {
 
                 for (let i: number = 0; i < distribuicaoRepescada.length; i++) {
 
@@ -151,7 +151,7 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
 
                         const atual = distribuicaoRepescada[j];
 
-                        const proximo = distribuicaoRepescada[i];
+                        const proximo = distribuicaoRepescada[j + 1];
 
                         const associacaoAtual = associacoes.find(a => a.cnpj === atual.cnpj)
 
@@ -173,23 +173,23 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                             return cotaIdeal - Math.floor(cotaIdeal)
                         }
 
-                        if (fracaoProximo > fracaoAtual) {
+                        if (fracaoProximo() > fracaoAtual()) {
                             trocou = true
-                            const temporario = distribuicaoRepescada[i];
-                            distribuicaoRepescada[i] = distribuicaoRepescada[j];
-                            distribuicaoRepescada[j] = temporario;
+                            const temporario = distribuicaoRepescada[j];
+                            distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
+                            distribuicaoRepescada[j + 1] = temporario;
 
                             continue
                         }
 
-                        if (fracaoAtual == fracaoProximo) {
+                        if (fracaoAtual() == fracaoProximo()) {
 
-                            if (proximo.familias < atual.familias) {
+                            if (proximo.familias > atual.familias) {
                                 trocou = true
 
-                                const temporario = distribuicaoRepescada[i];
-                                distribuicaoRepescada[i] = distribuicaoRepescada[j];
-                                distribuicaoRepescada[j] = temporario;
+                                const temporario = distribuicaoRepescada[j];
+                                distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
+                                distribuicaoRepescada[j + 1] = temporario;
                                 continue
                             }
 
@@ -199,9 +199,9 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                                 if (nomeOrdenacao < 0) {
                                     trocou = true
 
-                                    const temporario = distribuicaoRepescada[i];
-                                    distribuicaoRepescada[i] = distribuicaoRepescada[j];
-                                    distribuicaoRepescada[j] = temporario;
+                                    const temporario = distribuicaoRepescada[j];
+                                    distribuicaoRepescada[j] = distribuicaoRepescada[j + 1];
+                                    distribuicaoRepescada[j + 1] = temporario;
                                     continue
                                 } else if (nomeOrdenacao === 0) {
 
@@ -230,16 +230,18 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
                     }
                 }
 
-                for(const associacao of primeiraDistribuicao) {
-                    if(distribuicaoRepescada[0].cnpj === associacao.cnpj) {
-                        associacao.bandejas += loteDisponivel
-                        associacao.mudas += loteDisponivel * MUDAS_POR_BANDEJA
-                        loteDisponivel -= 1
-                        console.log("caiu aqui")
-                        break
+                if (loteDisponivel == 1) {
+                    for (const associacao of primeiraDistribuicao) {
+                        if (distribuicaoRepescada[0].cnpj === associacao.cnpj) {
+                            associacao.bandejas += loteDisponivel
+                            associacao.mudas += loteDisponivel * MUDAS_POR_BANDEJA
+                            loteDisponivel -= 1
+                            break
+                        }
                     }
+                    continue
                 }
-                continue
+
             }
 
             const distribuicao = distribuicaoRepescada.map(associacao => {
@@ -252,7 +254,6 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
 
                 const bandejaDisponível = loteDisponivel > bandejaEncontrada ? bandejaEncontrada : loteDisponivel
 
-                console.log("BandejaDisponivel", bandejaDisponível, "BandejaMaxima", bandejasMaxima, "loteDiponivel", loteDisponivel, "bandejaEncontrada", bandejaEncontrada)
 
                 if (bandejaDisponível == bandejasMaxima) {
 
@@ -319,33 +320,33 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
     return resultado
 }
 
- const totalMudas = 5_180
-        const associacoes: Associacao[] = [
-            {
-                nome: "Alto Alegre",
-                municipio: "Vale do Anari",
-                cnpj: "02.785.883/0001-18",
-                familias: 10,
-                cotaMaxima: 100_000,
-                situacao: "regular"
-            },
-            {
-                nome: "Água Boa",
-                municipio: "Água Boa",
-                familias: 10,
-                cotaMaxima: 100_000,
-                cnpj: "34.537.183/0001-09",
-                situacao: "regular"
-            },
-            {
-                nome: "Boa Esperança",
-                municipio: "Novo Mundo",
-                familias: 5,
-                cotaMaxima: 3_000,
-                cnpj: "25.027.055/0001-16",
-                situacao: "regular"
-            }
-        ]
+const totalMudas = 5_180
+const associacoes: Associacao[] = [
+    {
+        nome: "Alto Alegre",
+        municipio: "Vale do Anari",
+        cnpj: "02.785.883/0001-18",
+        familias: 10,
+        cotaMaxima: 100_000,
+        situacao: "regular"
+    },
+    {
+        nome: "Água Boa",
+        municipio: "Água Boa",
+        familias: 10,
+        cotaMaxima: 100_000,
+        cnpj: "34.537.183/0001-09",
+        situacao: "regular"
+    },
+    {
+        nome: "Boa Esperança",
+        municipio: "Novo Mundo",
+        familias: 5,
+        cotaMaxima: 3_000,
+        cnpj: "25.027.055/0001-16",
+        situacao: "regular"
+    }
+]
 
 const resultado = ratearMudas(totalMudas, associacoes)
 console.log(resultado)

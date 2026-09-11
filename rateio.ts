@@ -86,6 +86,16 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
     let familiasSaturadas = 0;
 
     const resultadoAcumulado: Distribuicao[] = associacoes.map(associacao => {
+        if (associacao.situacao !== "regular") {
+            const distribuido: Distribuicao = {
+                nome: associacao.nome,
+                cnpj: associacao.cnpj,
+                bandejas: 0,
+                mudas: 0,
+                motivoExclusao: associacao.situacao
+            }
+            return distribuido
+        }
 
         const bandejasMaxima = associacao.cotaMaxima / MUDAS_POR_BANDEJA
 
@@ -100,16 +110,6 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
             bandejasDistribuidasNestaRodada += bandejasMaxima
         } else {
             bandejasDistribuidasNestaRodada += bandejaDisponível
-        }
-        if (associacao.situacao !== "regular") {
-            const distribuido: Distribuicao = {
-                nome: associacao.nome,
-                cnpj: associacao.cnpj,
-                bandejas: 0,
-                mudas: 0,
-                motivoExclusao: associacao.situacao
-            }
-            return distribuido
         }
 
         const distribuicao: Distribuicao = {

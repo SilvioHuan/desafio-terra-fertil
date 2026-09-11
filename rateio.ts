@@ -98,6 +98,8 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
         if (bandejaDisponível == bandejasMaxima) {
             familiasSaturadas += associacao.familias
             bandejasDistribuidasNestaRodada += bandejasMaxima
+        } else {
+            bandejasDistribuidasNestaRodada += bandejaDisponível
         }
         if (associacao.situacao !== "regular") {
             const distribuido: Distribuicao = {
@@ -280,12 +282,22 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
             resultadoAcumulado.forEach(associacao => {
                 const associacaoEncontrada = distribuicao.find(a => a.cnpj === associacao.cnpj)
                 if (associacaoEncontrada) {
-                    associacao.bandejas = associacaoEncontrada.bandejas
-                    associacao.mudas = associacaoEncontrada.mudas
+                    associacao.bandejas += associacaoEncontrada.bandejas
+                    associacao.mudas += associacaoEncontrada.mudas
                 }
 
             })
 
+            if (bandejasDistribuidasNestaRodada === 0) {
+                for (let i = 0; i < loteDisponivel && i < associacoesRestantes.length; i++) {
+                    const assoc = resultadoAcumulado.find(a => a.cnpj === associacoesRestantes[i].cnpj);
+                    if (assoc) {
+                        assoc.bandejas += 1;
+                        assoc.mudas += MUDAS_POR_BANDEJA;
+                    }
+                }
+                bandejasDistribuidasNestaRodada = loteDisponivel; 
+            }
 
             loteDisponivel -= bandejasDistribuidasNestaRodada
             somaDasFamilias -= familiasSaturadas

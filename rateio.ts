@@ -20,7 +20,7 @@ export interface Distribuicao {
 }
 
 export interface ResultadoRateio {
-    distribuicao: Distribuicao[];
+    distribuicoes: Distribuicao[];
     totalDistribuido: number;
     sobraNaoDistribuida: number;
 }
@@ -298,7 +298,7 @@ export function ratearMudas(totalMudas: number, associacoes: Associacao[]): Resu
     }
 
     const resultado: ResultadoRateio = {
-        distribuicao: resultadoAcumulado.sort((a, b) => {
+        distribuicoes: resultadoAcumulado.sort((a, b) => {
             if (b.mudas !== a.mudas) {
                 return b.mudas - a.mudas
             }

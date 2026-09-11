@@ -99,7 +99,7 @@ describe("Distribui corretamente os lotes entre as associações", () => {
         ]
 
         const resultadoEsperado: ResultadoRateio = {
-            distribuicao: distribuicaoEsperada,
+            distribuicoes: distribuicaoEsperada,
             totalDistribuido: 18_000,
             sobraNaoDistribuida: 0
         }
@@ -159,7 +159,7 @@ describe("Distribui corretamente os lotes entre as associações", () => {
             }
         ]
         const resultadoEsperado: ResultadoRateio = {
-            distribuicao: distribuicaoEsperada,
+            distribuicoes: distribuicaoEsperada,
             totalDistribuido: 5150,
             sobraNaoDistribuida: 30
         }
@@ -207,7 +207,7 @@ describe("Distribui corretamente os lotes entre as associações", () => {
         ];
 
         const resultadoEsperado: ResultadoRateio = {
-            distribuicao: distribuicaoEsperada,
+            distribuicoes: distribuicaoEsperada,
             totalDistribuido: 150,
             sobraNaoDistribuida: 0
         };
